@@ -120,7 +120,7 @@ dotnet run --project src/DocumentManagement.Api --launch-profile https
 ```
 
 - API: `https://localhost:7054` (HTTPS profile) or `http://localhost:5016` (HTTP profile)
-- Interactive API docs (Development only): `https://localhost:7054/scalar`
+- Interactive API docs (Development only): `https://localhost:7054/scalar`. Visual Studio opens it automatically because both launch profiles set `"launchUrl": "scalar"`.
 - OpenAPI document (Development only): `https://localhost:7054/openapi/v1.json`
 
 Uploaded files are written to `src/DocumentManagement.Api/Storage/Documents/` (configurable through
@@ -279,9 +279,8 @@ DocumentManagement.slnx
 │   ├── DocumentManagement.Api/              # Host: Program.cs, DI, middleware, feature slices
 │   ├── DocumentManagement.Common/           # Shared contracts: IFileStorageService, FileValidator, exceptions
 │   └── DocumentManagement.Infrastructure/   # EF Core, migrations, local file storage, MediatR behaviors
-├── tests/
-│   └── DocumentManagement.Tests/            # xUnit integration + unit tests
-└── Frontend/                                # placeholder notes for a separate UI (not part of this assessment)
+└── tests/
+    └── DocumentManagement.Tests/            # xUnit integration + unit tests
 ```
 
 **Dependency direction:** `Api → Infrastructure → Common` and `Api → Common`. `Common` depends on
@@ -651,18 +650,26 @@ enforce Kestrel limits, so the tests hit the 10 MB `FileValidator` rule instead)
 
 ## AI usage
 
-**Tools used:** Claude Code (Anthropic) as a pair-programming assistant in the terminal/IDE.
+**Tools used:** Claude (chat) for analysing the brief, design discussion, code snippets and code
+review; Claude Code (terminal) for generating the test suite and drafting this README.
 
-**How it was used**
-- To analyse the assessment brief and turn it into a step-by-step checklist (kept in `CLAUDE.md`).
-- Step by step, happy path first: entity and DbContext → file storage → validation → each endpoint slice → tests → README. I asked for the reasoning behind each decision so I could explain it.
-- To write the test suite (SQLite factory, integration tests, handler unit tests with Moq, storage tests) and this README.
+**What I did myself**
+- Scaffolded the solution with my own boilerplate (vertical slices, Carter, MediatR, global
+  exception handling, ProblemDetails, Scalar).
+- Implemented and wired up the endpoint slices, set up the EF Core migrations, and tested each
+  endpoint manually.
+- Chose the stack (.NET 10, SQL Server, keeping MediatR) and which suggestions to adopt.
+- Removed unused boilerplate (the sample `Product` feature).
 
-**What I reviewed, changed or decided myself**
-- The overall design: vertical slices + Carter + MediatR (from my own boilerplate), metadata in SQL Server and files on disk, and the operation order for upload and delete.
-- I reviewed every generated file before accepting it and ran `dotnet test` after each test file.
-- When a test exposed the `BadHttpRequestException → 500` bug, the AI reported it **without** changing production code; I reviewed the cause and approved the fix.
-- Removed unused boilerplate (the sample `Product` feature) and fixed housekeeping issues.
+**What AI contributed, and how I reviewed it**
+- Suggested the file storage design (Guid names, path-traversal guard), the upload validation,
+  and the upload/delete operation order. I reviewed each one and asked for the reasoning so I
+  can explain it.
+- A code review caught bugs in my first Delete implementation (the `FindAsync` key overload and
+  deleting the file before the DB row); I fixed them.
+- Generated the test suite and this README; I reviewed them and ran `dotnet test` after each step.
+  When a test exposed the `BadHttpRequestException → 500` bug, the AI reported it without changing
+  production code, and I approved the fix.
 
 **Areas I'm least confident about**
 - Cross-resource consistency: the DB and the disk can't share a transaction. The chosen order limits the damage, but orphan files are still possible until a cleanup job exists.
