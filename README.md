@@ -1,5 +1,13 @@
 # Document Management API
 
+> **Summary**
+> - **What:** REST API to upload, list, view, download and delete documents (max 10 MB; PDF, DOCX, XLSX, TXT, PNG, JPG).
+> - **Stack:** .NET 10 Minimal API · vertical slices (Carter + MediatR) · EF Core + SQL Server · files on local disk, metadata in the DB.
+> - **Safety:** generated Guid file names (user input never becomes a path) · path-traversal guard · allow-listed types · RFC 7807 errors with correct status codes.
+> - **Consistency:** upload saves the file first and removes it if the DB save fails · delete removes the row first and logs any orphan file.
+> - **Tests:** 29 xUnit tests (integration + unit) on SQLite in-memory. Just run `dotnet test`, no database or setup needed.
+> - **Run:** `dotnet ef database update --project src/DocumentManagement.Infrastructure --startup-project src/DocumentManagement.Api`, then `dotnet run --project src/DocumentManagement.Api`.
+
 A REST API for uploading, listing, inspecting, downloading and deleting documents, built with
 **C# / ASP.NET Core (.NET 10)**, **EF Core** and **SQL Server**.
 
