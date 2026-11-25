@@ -1,0 +1,7 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/DocumentManagement.Api/DocumentManagement.Api.csproj" />
+    <Project Path="src/DocumentManagement.Common/DocumentManagement.Common.csproj" />
+    <Project Path="src/DocumentManagement.Infrastructure/DocumentManagement.Infrastructure.csproj" />
+  </Folder>
+</Solution>
