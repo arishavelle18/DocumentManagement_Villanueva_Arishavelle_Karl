@@ -27,13 +27,11 @@ DocumentManagement.slnx
 ├── src/DocumentManagement.Api/             (Program.cs, Extensions/, Features/Documents/...)
 ├── src/DocumentManagement.Common/          (FileStorage/ IFileStorageService + FileStorageOptions, FileValidator/, Exceptions/, Models/)
 ├── src/DocumentManagement.Infrastructure/  (Persistence/ AppDbContext + Entities + Configurations, Migrations/, FileStorage/LocalFileStorageService, Behaviors/)
-└── tests/DocumentManagement.Tests/         (to be created)
+└── tests/DocumentManagement.Tests/         (Infrastructure/, Integration/Documents/, Unit/Handlers/, Unit/FileStorage/)
 ```
-Feature slices planned under `Features/Documents/`: UploadDocument, ListDocuments, GetDocument, DownloadDocument, DeleteDocument.
+Feature slices under `Features/Documents/`: UploadDocument, ListDocuments, RetrieveDocumentDetails, DownloadDocuments, DeleteDocuments.
 
-Housekeeping TODO:
-- Rename `Infrastructure/FileStorage/LocalFileStorageService .cs` (stray space before `.cs`).
-- Remove boilerplate `Product` feature, entity, and `ProductConfiguration` before finishing.
+Housekeeping: done (stray-space filename fixed, `Product` boilerplate removed). Still unused from boilerplate: `Common/Models/Result`, `ValidationBehavior` (no validators registered).
 
 ## Requirements checklist
 
@@ -77,12 +75,13 @@ Overview; prerequisites (.NET 10 SDK, SQL Server/LocalDB); DB setup (use `dotnet
 - [x] Step 1: Document entity, AppDbContext, SQL Server registration, InitialCreate migration (commit Migrations/)
 - [x] Step 2: IFileStorageService + LocalFileStorageService (+ FileStorageOptions, appsettings section, Singleton registration, Storage/ in .gitignore)
 - [x] Step 3a: FileValidator + server request limits
-- [ ] Step 3b: Upload handler + Carter endpoint (save file → save DB → cleanup on failure)
-- [ ] Step 4: List + Get by id endpoints
-- [ ] Step 5: Download endpoint
-- [ ] Step 6: Delete endpoint
-- [ ] Step 7: Tests
-- [ ] Step 8: README + push to GitHub
+- [x] Step 3b: Upload handler + Carter endpoint (save file → save DB → cleanup on failure)
+- [x] Step 4: List + Get by id endpoints
+- [x] Step 5: Download endpoint
+- [x] Step 6: Delete endpoint
+- [x] Step 7: Tests (29 passing)
+- [x] Step 8a: README
+- [ ] Step 8b: push to GitHub
 
 ## Implementation notes
 
@@ -112,7 +111,21 @@ Overview; prerequisites (.NET 10 SDK, SQL Server/LocalDB); DB setup (use `dotnet
 - Server limits in Program.cs set to 11 MB (Kestrel `MaxRequestBodySize` + `FormOptions.MultipartBodyLengthLimit`) to block huge bodies early; the app-level 10 MB check gives the exact rule and is what tests hit (TestServer ignores Kestrel limits).
 - Known limitation (README): extension-based validation only; magic-byte/signature checking is out of scope.
 
+### Steps 3b–6 — Endpoints
+- Upload: file first, then DB row; on DB failure delete the file and rethrow.
+- Delete: DB row first, then file; file missing → warning, file delete throws → error log; both still 204 (worst case = harmless orphan file).
+- Download: 404 if row missing OR file missing (latter logged as inconsistency); `Results.File` streams.
+
+### Step 7 — Tests
+- SQLite in-memory: factory removes `DbContextOptions<AppDbContext>` AND `IDbContextOptionsConfiguration<AppDbContext>` (EF Core 9+), keeps one open connection, `EnsureCreated` in `CreateHost`.
+- Fresh factory per test (xUnit makes a new class instance per test) → clean DB + temp storage folder each time.
+- `AppDbContext` is sealed → DB failure simulated with `FailingSaveChangesInterceptor`.
+- FluentAssertions pinned to 7.x (8.x is commercial). .NET 10 `Program` is public, so no `partial class Program` needed.
+- Bug found by tests: `BadHttpRequestException` (malformed multipart, Kestrel 413) fell through `GlobalExceptionHandler` → 500. Fixed by mapping it to its own `StatusCode`.
+
 ## Interview one-liners
+- Delete order: "The DB is the source of truth. Deleting the row first means the worst case is an invisible, logged orphan file instead of a visible document with a broken download."
+- Test DB: "SQLite in-memory gives a real relational engine with zero setup; one open connection per factory keeps the DB alive, and a new factory per test keeps tests isolated."
 - Storage: "Stateless service with a single root folder. Guid filenames keep user input off the disk path; GetSafePath strips directory segments and verifies the path stays in the storage root; CreateNew prevents overwrites; streams avoid loading large files into memory."
 - Singleton: "It's stateless — the only field is a read-only root path from config, so it's safe across concurrent requests."
 - Server limits: "Kestrel/FormOptions at 11 MB stop abusive bodies before they're buffered; the 10 MB FileValidator check is the business rule and returns a clean 413 ProblemDetails."
