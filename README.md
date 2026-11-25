@@ -89,6 +89,9 @@ dotnet user-secrets init --project src/DocumentManagement.Api
 dotnet user-secrets set "ConnectionStrings:DefaultConnection" "Server=...;Database=DocumentManagement;User Id=...;Password=...;TrustServerCertificate=True" --project src/DocumentManagement.Api
 
 # Option B: environment variable (note the double underscore)
+# PowerShell
+$env:ConnectionStrings__DefaultConnection="Server=...;..."
+# bash
 export ConnectionStrings__DefaultConnection="Server=...;..."
 ```
 
@@ -606,7 +609,7 @@ tests/DocumentManagement.Tests/
 | Retrieve | existing → 200 with matching metadata; nonexistent → 404 |
 | Download | existing → 200, correct content type, original name, identical bytes; nonexistent → 404; row exists but file missing → 404 |
 | Delete | existing → 204, then GET → 404 and the file is gone; nonexistent → 404 |
-| List | returns all uploads with metadata fields only (raw JSON checked: no content field); empty → 200 `[]` |
+| List | returns all uploads with metadata fields only (raw JSON checked: no content field); empty → 200 `{ "data": [] }` |
 | Upload handler | DB save fails → stored file deleted + exception rethrown + no row |
 | Download handler | `OpenRead` returns null → 404 problem |
 | Delete handler | storage throws → row removed + 204; file already missing → row removed + 204 |
