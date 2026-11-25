@@ -4,4 +4,7 @@
     <Project Path="src/DocumentManagement.Common/DocumentManagement.Common.csproj" />
     <Project Path="src/DocumentManagement.Infrastructure/DocumentManagement.Infrastructure.csproj" />
   </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/DocumentManagement.Tests/DocumentManagement.Tests.csproj" />
+  </Folder>
 </Solution>
