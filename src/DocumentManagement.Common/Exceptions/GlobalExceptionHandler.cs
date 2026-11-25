@@ -29,6 +29,15 @@ public sealed class GlobalExceptionHandler(
                         .ToDictionary(g => g.Key, g => g.Select(e => e.ErrorMessage).ToArray())
                 }
             },
+            // Thrown by the framework for malformed requests (bad form body, body too large, etc.).
+            // Keep its status code (400/413) instead of turning a client error into a 500.
+            BadHttpRequestException badRequest => new ProblemDetails
+            {
+                Status = badRequest.StatusCode,
+                Title = "Bad request",
+                Detail = badRequest.Message,
+                Type = "https://tools.ietf.org/html/rfc9110#section-15.5.1"
+            },
             NotFoundException notFound => new ProblemDetails
             {
                 Status = StatusCodes.Status404NotFound,
